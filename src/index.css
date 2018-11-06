@@ -1,0 +1,43 @@
+html, body{
+  padding: 0;
+  margin: 0;
+  background-color: #EEEEEE;
+  font-family: Arial Black, Arial Bold, Gadget, sans-serif;
+  background-repeat: no-repeat;
+  width: 100%;
+  height: 100%;
+}
+#menu{
+  position: absolute;
+  top: 0;
+  left: 10px;
+  margin: 0;
+  padding: 0;
+}
+#menu a{
+  position:relative;
+  left: auto;
+  top: auto;
+  display: inline-block;
+  text-decoration: none;
+  padding: 5px 10px;
+  color: #666666;
+  margin-top: 5px;
+  margin-right: 2px;
+  border: 1px solid #666666;
+  background-color: #FFFFFF;
+  border-radius: 2px;
+  width: 250px;
+  text-align: center;
+}
+#menu a:hover, #menu a.selected{
+  background-color: #666666;
+  color: #FDFDFD;
+}
+#menu a.dark{
+  background-color: #333333;
+  color: #EEEEEE;
+}
+#menu a.dark:hover{
+  background-color: #000000;
+}
