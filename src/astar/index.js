@@ -24,21 +24,27 @@ class AStar extends Phaser.Scene {
         this.ctrl = controller(this);
         this.width = this.game.config.width;
         this.height = this.game.config.height;
-        this.scl = 50;
+        this.scl = 10;
         this.graph = this.add.graphics();
-        let obstaclePropability = 20;
+        let obstaclePropability = 35;
         this.grid = this.ctrl.makeGrid(obstaclePropability);
 
-        // lista caminho não explorado (open)
-        // lista de caminho explorado (closed) // o melhor caminaho actual
-        // 1. começar adicionar casa de partida para lista de closed
-        // 2. escolher uma direção
-        // 2. escolher a direção mais vantajosa
-        // cada casa tem uma pontuação (G + H)
-        // G é o custo para chegar na casa do ponto de partida (A) (casa do lado 1, casa do lado da do lado 2 etc..)
-        // a cada casa andada G aumenta 1
-        // H é o custo para a casa actual até o ponto de chegada (B) estimado pra chegar na chegada
+        // lista caminho aberto (open)
+        // lista fechado (closed)
+        // ponto de partida deve se encontar no lista de abertos
+        // LOOP
+        // 1. pegar lugar com menor pontução, esse é nosso lugar atual
+        // 2. adiconar lugar atual a lista fechada e remover da lista aberta
+        // 3. checkar se lugar atual é potno final, encontramos o caminho
+        // 4. buiscar parentes
+        // 5. para cada parente
+        // 5.1 verificar se tá na lista de fechados, se sim, igonorar esse parente
+        // 5.2 adicionar se NÃO exista na lista de abrtos, computando a pontuação
+        // 5.3 se já existe na lista de abertos e contem um pontuação menor dq a computada no momento
+        // 5.3 então fechar luagar atual, resetar todas as lista e algoritmo.
+ 
         /*
+            A potnuação F = G + H
                   G
             0  1  2  4  5x
             A -> | 3 | ->
@@ -48,40 +54,29 @@ class AStar extends Phaser.Scene {
                          | 4
                           B 5
 
+            G é o custo que se tem pra pular de uma casa para outra.da casa A para casa C pode ser = 2, mas da casa B (localização atual é 1). então G é sempre 1.
+            H é o custo real do ponto de pártida ao ponto de chegada.
+
             então a casa (x) tem um custo de (5 passos para cheagr até + um estimado 5 passos para chegar na chegada)
             com H pode se pode ser creativo, imgone adicona um extra de esforço casa a acasa seja um terreno especial (lama, agua, etc..)
 
         */
-        // Quanto mais perto do H o G estiver mais curta é a distância
-        // Mas pode ter momentos que H (off) tá desligado, então o caminho acha talvez não seja o mais curto
-        // F = (G + H) (calculado em tempo real)
-        //
-        // Então  o algoritimo começa
-        // 1. Vamos pegar a casa com a menor pontuação (F) da lista de aberto
-        // 2. Vamos chamar essa casa de (S)
-        // 3. Remova (S) da lista de aberto e adicione a lista de fechado
-        // 4. Para cada casa na visão de (TILE) (T) de (S)
-        /*
-            1. (T) tá na lista de fechados, então ignore
-            2. se (T) não estiver na lista de abertos, então adicione (T) a lista de abertos e compute a pontuação de (T)
-            3. se (T) estiver na lista aberta verifique sua pontuação computada é menor que (F) e menor então atulize a pontuação de F e seus parentes
-        */
 
-        this.open = [];
-        this.closed = [];
-        this.black = [];
+        this.reset = () => {
 
-        // // computando pontos de start
-        // this.grid[0][0].options.G = 0;
-        // this.grid[0][0].options.H = this.height / this.scl - 1 + this.width / this.scl;
-        // this.grid[0][0].options.F = this.grid[0][0].options.G + this.grid[0][0].options.H;
+            this.ctrl.drawGrid(this.grid);
+            this.openPlaces = [];
+            this.closedPlaces = [];
+            this.lastPlace = null;
+            this.pathFound = false;
 
-        // adiciona start (A)
-        this.open[(this.grid[0][0].options.y + this.grid[0][0].options.x * this.height) * 4] = this.grid[0][0];
-        this.open = this.ctrl.reset(this.grid);
+            // adicionado campo de partida para array
+            this.openPlaces[0] = [this.grid[0][0]];
+            this.openPlaces[0][0].opt.f = 0;
+        };
 
+        this.reset();
         this.frame = 0;
-        this.G = 0;
     }
 
     update() {
@@ -91,80 +86,231 @@ class AStar extends Phaser.Scene {
         //     return;
         // this.frame = 0;
 
-        if(this.end)
-            return;
-            
-        let actual = null;
-
-        // pintar open
-        for(let at in this.open) {
-            
-            this.graph.fillStyle(0xFF0000, 1);  
-            this.graph.fillRectShape(this.open[at]);
-            actual = at;
-        }
-
-        // se a casa actual é o ponto de chega, finish
-        if(this.open[actual].options.isEnd)
+        if(this.pathFound)
             return;
 
 
-        let parents = this.ctrl.getParents(this.open[actual], this.grid);
+        if(!this.openPlaces.length)
+            return;
 
-        // computar o score F
-        let F = this.height/this.scl+this.width/this.scl+999;
-        let bestOne = null;
 
-        // aumentar o esforço
-        this.G++;
+        // pegando a casa com menor pontuação da lista de abertos
+        let f = 999999999999;
+        let currrentPlace = null;
 
-        this.ctrl.loopThroughParents(parents, (parent) => {
+        this.ctrl.loopThrough(this.openPlaces, (place) => {
 
-            // verificar se é parede
-            if(parent.options.isObstacle)
-                return;
-
-            // verificar se já existe na lista de closed
-            if(this.closed[(parent.options.y + parent.options.x * this.height) * 4])
-                return;
-
-            // computar os pontos
-            parent.options.F = (this.G + 1) + ((this.height / this.scl) - parent.options.y - 1) + ((this.width / this.scl) - parent.options.x);
             
-            // computar melhor potuação
-            if(parent.options.F < F){
-                
-                F = parent.options.F;
-                bestOne = parent;
-            }
+            if(!place || place.opt.f > f)
+                return;
+    
+            f = place.opt.f;
+            currrentPlace = place;
         });
 
-        // se na lista de abertos só existe ponto a e não existe melhor casa para ir
-        // então não tem como chegar no final
-        if(this.open.length === 1 && !bestOne){
+        // ops, não tenho para onde ir
+        if(!currrentPlace) {
 
-            // console.log('no way');
+            console.log('no way')
             return;
         }
 
-        // se a melhor casa já tá na lista de open
-        // siginifica que passei por ela e  voltar para ela é a melhor opção
-        // então vou adicionar minha casa actual o closed para não volatar para ela
-        // resetar o caminho, e começar do 0
-        if(this.open[(bestOne.options.y + bestOne.options.x * this.height) * 4]){
+        // pitando casa atual de vermelho
+        this.graph.fillStyle(0xFF0000, 1);  
+        this.graph.fillRectShape(currrentPlace);
 
-            this.closed[actual] = this.open[actual];
-            this.open = this.ctrl.reset(this.grid);
-            this.G = 0;
+        if(!this.closedPlaces[currrentPlace.opt.y])
+            this.closedPlaces[currrentPlace.opt.y] = [];
+        if(!this.openPlaces[currrentPlace.opt.y])
+            this.openPlaces[currrentPlace.opt.y] = [];
+
+        // adicionando casa atual a closed
+        this.closedPlaces[currrentPlace.opt.y][currrentPlace.opt.x] = currrentPlace;
+        this.closedPlaces[currrentPlace.opt.y][currrentPlace.opt.x].opt.isClosed = true;
+        // removendo a casa dos abertos
+        this.openPlaces[currrentPlace.opt.y][currrentPlace.opt.x] = false;
+
+        // se casa atual é final, aehhh
+        if(currrentPlace.opt.isEnd) {
+
+            // console.log('path found');
+            this.pathFound = true;
+            this.graph.fillStyle(0xFF0000, 1);  
+            this.graph.fillRectShape(currrentPlace);
+
+            // achei um caminho e agora vou  agora vou pecorrer esse caminho ao contrario
+            // criando H do final para o início
+            // era isso XD GENIAL
+            let finish = false;
+
+            // start é a últimacasa
+            let actualPlace = null;
+            this.ctrl.loopThrough(this.grid, (place) => {
+
+                if(!place.opt.isEnd)
+                    return;
+                
+                actualPlace = place;
+            });
+
+            // pitando
+            this.graph.fillStyle(0x0000FF, 1);
+            this.graph.fillRectShape(actualPlace);
+
+            let teste = 250;
+            
+            while(!finish) {
+
+                teste--;
+
+                // pitando
+                // console.log(actualPlace.opt);
+                this.graph.fillStyle(0x0000FF, 1);
+                this.graph.fillRectShape(actualPlace);
+                
+                // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
+                // this.add.text(actualPlace.opt.x * this.scl, actualPlace.opt.y * this.scl + 35, actualPlace.opt.y + '+' + actualPlace.opt.x, style);
+                
+                // removendo da lista de markados como closed
+                actualPlace.opt.isClosed = false;
+                
+                // pegar o parente com element o o menor valor hInvertido
+                let parents = this.ctrl.getParents(actualPlace);
+
+                // considerando apenas os parents que foram adiconados a lista close
+                // let hInverted = actualPlace.opt.hInverted;
+                let hInverted = 999999999;
+
+                for(let i = 0; i < parents.length; i++){
+
+                    if(!parents[i].opt.isStart){
+
+                        // verificando se escolha tem parents, ou se entrei em um beco sem saida
+                        let parentsFromParent = this.ctrl.getParents(parents[i]);
+                        let parentsFromParentHasParent = false;
+                        for(let j = 0 ; j < parentsFromParent.length; j++){
+                            
+                            if(!parentsFromParent[j].opt.isClosed && !parentsFromParent[j].opt.isStart)
+                                continue;
+                            
+                            parentsFromParentHasParent = parentsFromParent[j];
+                        }
+                        
+                        if(!parentsFromParentHasParent)
+                            continue;
+                        //
+                        // verificando se escolha da escolha tem parents, ou se entrei em um beco sem saida XD
+                        let parentsFromFromParent = this.ctrl.getParents(parentsFromParentHasParent);
+                        let parentsFromFromParentHasParent = false;
+                        for(let j = 0 ; j < parentsFromFromParent.length; j++){
+                            
+                            if(!parentsFromFromParent[j].opt.isClosed && !parentsFromFromParent[j].opt.isStart)
+                                continue;
+                            
+                            parentsFromFromParentHasParent = parentsFromFromParent[j];
+                        }
+                        
+                        if(!parentsFromFromParentHasParent)
+                            continue;
+                        //
+                        // verificando se escolha da escolha da escolha tem parents, ou se entrei em um beco sem saida XD
+                        let parentsFromFromFromParent = this.ctrl.getParents(parentsFromParentHasParent);
+                        let parentsFromFromFromParentHasParent = false;
+                        for(let j = 0 ; j < parentsFromFromFromParent.length; j++){
+                            
+                            if(!parentsFromFromFromParent[j].opt.isClosed && !parentsFromFromFromParent[j].opt.isStart)
+                                continue;
+                            
+                            parentsFromFromFromParentHasParent = parentsFromFromFromParent[j];
+                        }
+                        
+                        if(!parentsFromFromFromParentHasParent)
+                            continue;
+                        //
+                    }
+                    
+                    if(parents[i].opt.isClosed === true && parents[i].opt.hInverted < hInverted){
+                        
+                        hInverted = parents[i].opt.hInverted;
+                        actualPlace = parents[i];
+                        // console.log('aqui achei um melhor', parents[i].opt.y, parents[i].opt.x, parents[i].opt.isClosed, parents[i])
+                    }
+                }
+
+                // se só tenho uma opçaõ é melhor el dq nenhuma kkkk
+                if(parents.length === 1){
+
+                    // console.log('so tem esse ', parents[0].opt.y, parents[0].opt.x)
+                    actualPlace = parents[0];
+                }
+
+                // se é a última casa
+                if(actualPlace.opt.hInverted === 0) {
+
+                    this.graph.fillStyle(0x0000FF, 1);
+                    this.graph.fillRectShape(actualPlace);
+                    
+                    // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
+                    // this.add.text(actualPlace.opt.x * this.scl, actualPlace.opt.y * this.scl + 35, actualPlace.opt.y + '+' + actualPlace.opt.x, style);
+                    
+                    finish = true;
+                }
+
+
+                if(!teste){
+
+                    console.log('aqui de erro', actualPlace.opt)
+                    console.log('aqui de erro', parents)
+                    finish = true;
+                    return;
+                }
+            }
+
             return;
         }
 
-        // adicionando melhor caminho a lista de open
-        this.open[(bestOne.options.y + bestOne.options.x * this.height) * 4] = bestOne;
+        // parents
+        this.parents = this.ctrl.getParents(currrentPlace);
 
-        // se bestone é o final, DONE
-        // if(bestOne.options.isEnd)
-        //     console.log('end')
+        let reset = false;
+        this.parents.filter((parent) => {
+
+            // this.graph.fillStyle(0xFF0000, 1);
+            // this.graph.fillRectShape(parent);
+
+
+            // identifiquei um caminho ruim, para loop
+            if(reset)
+                return parent;
+            
+            let f = 1 + parent.opt.h;  // lembre g é sempre um da casa atual até a casa vizinha
+                                       // mas tem o global que vai crescendo conforme vc se movimenta
+
+            let y = parent.opt.y;
+            let x = parent.opt.x;
+            // se tá na lista de fechados, continue
+            if(this.closedPlaces[y] && this.closedPlaces[y][x])
+                return parent;
+
+            // se não tá na lista de abertos, computar f e adiconar
+            if(!this.openPlaces[y] || !this.openPlaces[y][x]) {
+
+                if(!this.openPlaces[y])
+                    this.openPlaces[y] = [];
+
+                parent.opt.f = f;
+                this.openPlaces[y][x] = parent;
+                return parent;
+            }
+
+            return parent;
+        });
+
+        if(reset)
+            return this.reset();
+
+        // útlima casa visitada
+        this.lastPlace = currrentPlace;
     }
 }
 

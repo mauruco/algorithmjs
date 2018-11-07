@@ -1,5 +1,4 @@
 import Phaser from '../Phaser';
-import { randomArrayEle, random } from '../helpers';
 
 const controller = (scene) => {
 
@@ -14,135 +13,128 @@ const controller = (scene) => {
                 for(let x = 0; x < scene.width / scene.scl; x++){
 
                     grid[y][x] = new Phaser.Geom.Rectangle(x * scene.scl, y * scene.scl, scene.scl, scene.scl);
-                    grid[y][x].options = {
+                    grid[y][x].opt = {
 
-                        x,
                         y,
+                        x,
+                        isStart: false,
                         isEnd: false,
                         isObstacle: false,
-                        color: 0xFFFFFF,
-                        G: 0,
-                        H: 0,
-                        F: 0
+                        isClosed: false,
+                        isFullFiled: false,
+                        h: (scene.height / scene.scl) + (scene.width / scene.scl) - y - x - 2,
+                        hInverted: (scene.height / scene.scl) * y + (scene.width / scene.scl) * x,
+                        f: 0
                     };
 
                     let rand = Math.random() * 100;
 
                     if(rand < obstaclePropability) {
 
-                        grid[y][x].options = {
+                        grid[y][x].opt = {
 
-                            ...grid[y][x].options,
-                            isObstacle: true,
-                            color: 0x000000
+                            ...grid[y][x].opt,
+                            isObstacle: true
                         };
                     }
-
-                    if(!grid[y][x].options.isObstacle){
-
-                        scene.graph.fillStyle(grid[y][x].options.color, 1);
-                        scene.graph.fillRectShape(grid[y][x]);
-                        continue;
-                    }
-                    
-                    scene.graph.fillStyle(grid[y][x].options.color, 1);  
-                    scene.graph.fillRectShape(grid[y][x]);
                 }
             }
 
             // ponto de partida
-            grid[0][0].options.isEnd = false;
-            grid[0][0].options.isObstacle = false;
-            grid[0][0].options.color = 0xFFFFFF;
-            scene.graph.fillStyle(grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].options.color, 1);
-            scene.graph.fillRectShape(grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1]);
+            grid[0][0].opt.isStart = true;
+            grid[0][0].opt.isClosed = true;
+            grid[0][0].opt.isObstacle = false;
+            scene.graph.fillStyle(0xFFFFFF, 1);  
+            scene.graph.fillRectShape(grid[0][0]);
 
             // ponto de chegada
-            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].options.isEnd = true;
-            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].options.isObstacle = false;
-            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].options.color = 0xFFFFFF;
-            scene.graph.fillStyle(grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].options.color, 1);
+            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].opt.isEnd = true;
+            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].opt.isClosed = true;
+            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].opt.isObstacle = false;
+            scene.graph.fillStyle(0xFFFFFF, 1);
             scene.graph.fillRectShape(grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1]);
             
             return grid;
         },
 
-        loopThrough: (grid, callBack) => {
-
-            for(let y = 0; y < scene.height / scene.scl; y++)
-                for(let x = 0; x < scene.width / scene.scl; x++)
-                    callBack(grid[y][x]);
-        },
-
-        getParents: (place, grid) => {
-
-            let parents = [];
-            let y = place.options.y;
-            let x = place.options.x;
-            
-            if(grid[y-1]){
-                
-                // top
-                if(grid[y-1][x])
-                    parents.push(grid[y-1][x]);
-                // top left
-                if(grid[y-1][x-1])
-                    parents.push(grid[y-1][x-1]);
-                // top right
-                if(grid[y-1][x+1])
-                    parents.push(grid[y-1][x+1]);
-            }
-            
-            if(grid[y+1]){
-                
-                // bottom
-                parents.push(grid[y+1][x]);
-                // top left
-                if(grid[y+1][x-1])
-                    parents.push(grid[y+1][x-1]);
-                // top right
-                if(grid[y+1][x+1])
-                    parents.push(grid[y+1][x+1]);
-            }
-
-            // left
-            if(grid[y][x-1])
-                parents.push(grid[y][x-1]);
-            
-                // right
-            if(grid[y][x+1])
-                parents.push(grid[y][x+1]);
-
-            return parents;
-        },
-
-        loopThroughParents: (parents, callBack) => {
-
-            for(let i in parents)
-                callBack(parents[i])
-        },
-
-        reset(grid) {
-
-            scene.graph.clear();
+        drawGrid: (grid) => {
 
             scene.ctrl.loopThrough(grid, (place) => {
 
-                if(!place.options.isObstacle){
+                // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
+                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.h, style);
+                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 20, place.opt.hInverted, style);
 
-                    scene.graph.fillStyle(place.options.color, 1);
-                    scene.graph.strokeRectShape(place);
+                if(place.opt.isObstacle){
+
+                    scene.graph.fillStyle(0x000000, 1);
+                    scene.graph.fillRectShape(place);
                     return;
                 }
                 
-                scene.graph.fillStyle(place.options.color, 1);  
+                if(place.opt.isBadWay){
+                    
+                    
+                    scene.graph.fillStyle(0x0000FF, 1);
+                    scene.graph.fillRectShape(place);
+                    return;
+                }
+                
+                scene.graph.fillStyle(0xFFFFFF, 1);  
                 scene.graph.fillRectShape(place);
-            });
 
-            let open = [];
-            open[(grid[0][0].options.y + grid[0][0].options.x * scene.width) * 4] = grid[0][0];
-            return open;
-        }
+            });
+        },
+
+        loopThrough: (list, callBack) => {
+
+            for(let y in list)
+                for(let x in list[y])
+                    callBack(list[y][x])
+        },
+
+        getParents: (place) => {
+
+            let parents = [];
+            let y = place.opt.y;
+            let x = place.opt.x;
+            
+            if(scene.grid[y-1]){
+                
+                // top
+                if(!scene.grid[y-1][x].opt.isObstacle)
+                    parents.push(scene.grid[y-1][x]);
+                // // top left
+                // if(scene.grid[y-1][x-1] && !scene.grid[y-1][x-1].opt.isObstacle)
+                //     parents.push(scene.grid[y-1][x-1]);
+                // // top right
+                // if(scene.grid[y-1][x+1] && !scene.grid[y-1][x+1].opt.isObstacle)
+                //     parents.push(scene.grid[y-1][x+1]);
+            }
+            
+            if(scene.grid[y+1]){
+                
+                // bottom
+                if(!scene.grid[y+1][x].opt.isObstacle)
+                    parents.push(scene.grid[y+1][x]);
+                // // top left
+                // if(scene.grid[y+1][x-1] && !scene.grid[y+1][x-1].opt.isObstacle)
+                //     parents.push(scene.grid[y+1][x-1]);
+                // // top right
+                // if(scene.grid[y+1][x+1] && !scene.grid[y+1][x+1].opt.isObstacle)
+                //     parents.push(scene.grid[y+1][x+1]);
+            }
+
+            // left
+            if(scene.grid[y][x-1] && !scene.grid[y][x-1].opt.isObstacle)
+                parents.push(scene.grid[y][x-1]);
+            
+                // right
+            if(scene.grid[y][x+1] && !scene.grid[y][x+1].opt.isObstacle)
+                parents.push(scene.grid[y][x+1]);
+
+            return parents;
+        },
     };
 };
 
