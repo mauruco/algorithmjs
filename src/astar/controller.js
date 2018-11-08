@@ -4,6 +4,15 @@ const controller = (scene) => {
 
     return {
 
+        about: (text) => {
+
+            let body = document.getElementsByTagName('body')[0];
+            let about = document.createElement('div');
+            about.innerHTML = text;
+            about.id = 'about';
+            body.appendChild(about);
+        },
+
         makeGrid(obstaclePropability = 10) {
 
             let grid = [];
@@ -15,15 +24,14 @@ const controller = (scene) => {
                     grid[y][x] = new Phaser.Geom.Rectangle(x * scene.scl, y * scene.scl, scene.scl, scene.scl);
                     grid[y][x].opt = {
 
+                        i: (y + x * scene.height) * 4,
                         y,
                         x,
                         isStart: false,
                         isEnd: false,
                         isObstacle: false,
-                        isClosed: false,
-                        isFullFiled: false,
-                        h: (scene.height / scene.scl) + (scene.width / scene.scl) - y - x - 2,
-                        hInverted: (scene.height / scene.scl) * y + (scene.width / scene.scl) * x,
+                        backTrace: false,
+                        h: 0,
                         f: 0
                     };
 
@@ -39,22 +47,16 @@ const controller = (scene) => {
                     }
                 }
             }
-
-            // ponto de partida
-            grid[0][0].opt.isStart = true;
-            grid[0][0].opt.isClosed = true;
-            grid[0][0].opt.isObstacle = false;
-            scene.graph.fillStyle(0xFFFFFF, 1);  
-            scene.graph.fillRectShape(grid[0][0]);
-
-            // ponto de chegada
-            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].opt.isEnd = true;
-            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].opt.isClosed = true;
-            grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1].opt.isObstacle = false;
-            scene.graph.fillStyle(0xFFFFFF, 1);
-            scene.graph.fillRectShape(grid[scene.height / scene.scl - 1][scene.width / scene.scl - 1]);
             
             return grid;
+        },
+
+        calcH: (grid, end) => {
+
+            scene.ctrl.loopThrough(grid, (place) => {
+
+                place.opt.h = Math.abs(place.opt.y - end.opt.y) + Math.abs(end.opt.x - place.opt.x);;
+            });
         },
 
         drawGrid: (grid) => {
@@ -67,23 +69,38 @@ const controller = (scene) => {
 
                 if(place.opt.isObstacle){
 
-                    scene.graph.fillStyle(0x000000, 1);
-                    scene.graph.fillRectShape(place);
+                    scene.ctrl.draw(place, 0x000000)
                     return;
                 }
                 
-                if(place.opt.isBadWay){
-                    
-                    
-                    scene.graph.fillStyle(0x0000FF, 1);
-                    scene.graph.fillRectShape(place);
+                if(place.opt.isStart || place.opt.isEnd ){
+
+                    scene.ctrl.draw(place, 0xFF0000)
                     return;
                 }
                 
-                scene.graph.fillStyle(0xFFFFFF, 1);  
+                scene.graph.fillStyle(0x999999, 1);  
                 scene.graph.fillRectShape(place);
 
             });
+        },
+
+        setStart: (place) => {
+
+            // ponto de partida
+            place.opt.isStart = true;
+            place.opt.isClosed = true;
+            place.opt.isObstacle = false;
+            return place;
+        },
+        
+        setEnd: (place) => {
+            
+            // ponto de chegada
+            place.opt.isEnd = true;
+            place.opt.isClosed = true;
+            place.opt.isObstacle = false;
+            return place;
         },
 
         loopThrough: (list, callBack) => {
@@ -93,48 +110,178 @@ const controller = (scene) => {
                     callBack(list[y][x])
         },
 
-        getParents: (place) => {
+        getParents: (grid, place, closeds = false) => {
 
             let parents = [];
             let y = place.opt.y;
             let x = place.opt.x;
             
-            if(scene.grid[y-1]){
+            if(grid[y-1]){
                 
                 // top
-                if(!scene.grid[y-1][x].opt.isObstacle)
-                    parents.push(scene.grid[y-1][x]);
-                // // top left
-                // if(scene.grid[y-1][x-1] && !scene.grid[y-1][x-1].opt.isObstacle)
-                //     parents.push(scene.grid[y-1][x-1]);
-                // // top right
-                // if(scene.grid[y-1][x+1] && !scene.grid[y-1][x+1].opt.isObstacle)
-                //     parents.push(scene.grid[y-1][x+1]);
+                if(!grid[y-1][x].opt.isObstacle)
+                    parents.push(grid[y-1][x]);
+                
+                if(scene.diagonal){
+
+                    // top left
+                    if(grid[y-1][x-1] && !grid[y-1][x-1].opt.isObstacle)
+                        parents.push(grid[y-1][x-1]);
+                    // top right
+                    if(grid[y-1][x+1] && !grid[y-1][x+1].opt.isObstacle)
+                        parents.push(grid[y-1][x+1]);
+                }
             }
             
-            if(scene.grid[y+1]){
+            if(grid[y+1]){
                 
                 // bottom
-                if(!scene.grid[y+1][x].opt.isObstacle)
-                    parents.push(scene.grid[y+1][x]);
-                // // top left
-                // if(scene.grid[y+1][x-1] && !scene.grid[y+1][x-1].opt.isObstacle)
-                //     parents.push(scene.grid[y+1][x-1]);
-                // // top right
-                // if(scene.grid[y+1][x+1] && !scene.grid[y+1][x+1].opt.isObstacle)
-                //     parents.push(scene.grid[y+1][x+1]);
+                if(!grid[y+1][x].opt.isObstacle)
+                    parents.push(grid[y+1][x]);
+
+                if(scene.diagonal){
+
+                    // top left
+                    if(grid[y+1][x-1] && !grid[y+1][x-1].opt.isObstacle)
+                        parents.push(grid[y+1][x-1]);
+                    // top right
+                    if(grid[y+1][x+1] && !grid[y+1][x+1].opt.isObstacle)
+                        parents.push(grid[y+1][x+1]);
+                }
             }
 
             // left
-            if(scene.grid[y][x-1] && !scene.grid[y][x-1].opt.isObstacle)
-                parents.push(scene.grid[y][x-1]);
+            if(grid[y][x-1] && !grid[y][x-1].opt.isObstacle)
+                parents.push(grid[y][x-1]);
             
                 // right
-            if(scene.grid[y][x+1] && !scene.grid[y][x+1].opt.isObstacle)
-                parents.push(scene.grid[y][x+1]);
+            if(grid[y][x+1] && !grid[y][x+1].opt.isObstacle)
+                parents.push(grid[y][x+1]);
+
+            if(closeds) {
+
+                let closedsParents = [];
+                parents.filter((parent) => {
+                    
+                    // se parent não fizer parta da lista closeds, ignorar
+                    for(let i in closeds) {
+
+                        // se closed foi removido (beco sem saida), ignorar
+                        if(!closeds)
+                            continue;
+                        
+                        if(parseInt(i) !== parseInt(parent.opt.i))
+                            continue;
+
+                        if(parent.opt.backTrace)
+                            continue;
+                        
+                        closedsParents.push(parent);
+                    }
+                    
+                    return parent;
+                });
+                
+                return closedsParents;
+            }
 
             return parents;
         },
+        
+        draw: (place, color = 0x00FF00) => {
+
+            scene.graph.fillStyle(color, 1);  
+            scene.graph.fillRectShape(place);
+        },
+
+        traceBack: (closeds, start, end) => {
+
+            // resentando lista de backtrace
+            for(let i in closeds){
+                // se foi excluido para resetar, ignorar
+                if(!closeds[i])
+                    continue;
+                closeds[i].opt.backTrace = false;
+                if(!closeds[i].opt.isStart && !closeds[i].opt.isEnd)
+                    scene.ctrl.draw(closeds[i], 0x00FF00);
+            }
+
+            let currentPlace = end;
+            let backTrace = [];
+
+            let teste = 150;
+            while(true) {
+
+                teste--;
+
+                // pintar
+                if(!currentPlace.opt.isStart && !currentPlace.opt.isEnd)
+                    scene.ctrl.draw(currentPlace, 0x0000FF);
+                
+                // adionando a lista de já passei por aqui
+                currentPlace.opt.backTrace = true;
+
+                // achei caminho completo
+                if(currentPlace.opt.i === start.opt.i) {
+
+                    backTrace[currentPlace.opt.i] = currentPlace.opt.i;
+                    if(!currentPlace.opt.isStart && !currentPlace.opt.isEnd)
+                        scene.ctrl.draw(currentPlace, 0x0000FF);
+                    // console.log('backtrace complete');
+
+                    let style = {fontFamily: 'Arial', fontSize: '24px', color: '#FF0000', backgroundColor: '#FFFFFF'};
+                    scene.add.text(50, 50, 'DONE! Reload?', style);
+                    scene.ctrl.reload();
+                    return;
+                }
+                
+                // pegar parents, que estão na lista de closeds e não estão na de backtrace
+                let parents = scene.ctrl.getParents(scene.grid, currentPlace, closeds);
+                
+                //  estou sem parents, então tô preso e vou resetar, removendo a currentplcae da lista de closeds
+                if(parents.length === 0){
+                    
+                    console.log('im stucky');
+                    closeds[currentPlace.opt.i] = false;
+                    scene.ctrl.draw(currentPlace);
+                    scene.ctrl.traceBack(closeds, start, end);
+                    return;
+                }
+
+                // só tenho uma opção, então é ela
+                if(parents.length === 1){
+                    
+                    currentPlace = parents[0];
+                    continue;
+                }
+                
+                // pegar o parente com elemento com o valor maior h
+                let h = 0;
+                for(let i = 0; i < parents.length; i++){
+
+                    // pegar parente com maior valor e que não tá na lista bactrace
+                    if(parents[i].opt.backTrace || parents[i].opt.h < h)
+                        continue;
+                        
+                    // melhor opção
+                    h = parents[i].opt.h;
+                    currentPlace = parents[i];
+                }
+
+                if(!teste)
+                    return;
+            }
+        },
+
+        reload: () => {
+
+            let canvas = document.getElementsByTagName('canvas')[0];
+            canvas.style.cursor = 'pointer';
+            canvas.addEventListener('click', () => {
+
+                window.location.reload();
+            });
+        }
     };
 };
 
