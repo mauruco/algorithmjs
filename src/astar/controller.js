@@ -30,8 +30,9 @@ const controller = (scene) => {
                         isStart: false,
                         isEnd: false,
                         isObstacle: false,
-                        backTrace: false,
+                        traceBack: false,
                         h: 0,
+                        g: 0,
                         f: 0
                     };
 
@@ -59,23 +60,34 @@ const controller = (scene) => {
             });
         },
 
+        calcG: (grid, start) => {
+
+            scene.ctrl.loopThrough(grid, (place) => {
+
+                place.opt.g = Math.abs(place.opt.y - start.opt.y) + Math.abs(start.opt.x - place.opt.x);;
+            });
+        },
+
         drawGrid: (grid) => {
 
             scene.ctrl.loopThrough(grid, (place) => {
 
-                // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
+                let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
                 // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.h, style);
-                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 20, place.opt.hInverted, style);
+                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 12, place.opt.g, style);
+                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.y, style);
+                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 12, place.opt.x, style);
+                // scene.add.text(place.opt.x * scene.scl + 20, place.opt.y * scene.scl, place.opt.f, style);
 
                 if(place.opt.isObstacle){
 
-                    scene.ctrl.draw(place, 0x000000)
+                    scene.ctrl.draw(place, 0x000000);
                     return;
                 }
                 
                 if(place.opt.isStart || place.opt.isEnd ){
 
-                    scene.ctrl.draw(place, 0xFF0000)
+                    scene.ctrl.draw(place, 0xFF0000);
                     return;
                 }
                 
@@ -173,7 +185,7 @@ const controller = (scene) => {
                         if(parseInt(i) !== parseInt(parent.opt.i))
                             continue;
 
-                        if(parent.opt.backTrace)
+                        if(parent.opt.traceBack)
                             continue;
                         
                         closedsParents.push(parent);
@@ -196,38 +208,46 @@ const controller = (scene) => {
 
         traceBack: (closeds, start, end) => {
 
-            // resentando lista de backtrace
+            // resentando lista de traceBack
             for(let i in closeds){
                 // se foi excluido para resetar, ignorar
                 if(!closeds[i])
                     continue;
-                closeds[i].opt.backTrace = false;
+                closeds[i].opt.traceBack = false; // <-------------------------------------------------------------------ISSO TEM QUE MELHORAR
                 if(!closeds[i].opt.isStart && !closeds[i].opt.isEnd)
                     scene.ctrl.draw(closeds[i], 0x00FF00);
             }
 
             let currentPlace = end;
-            let backTrace = [];
+            let traceBack = [];
+            let lastPlace = null;
 
-            let teste = 150;
+            // a casa atual já foi vista antes e não foi escolhida!
+            // então saberei se escholer ela agora que "eu passei por ela e voltei pra ela"
+            let alreadysee = [];
+
+            let step = 0;
+
+            let test = 550;
             while(true) {
-
-                teste--;
+                test--;
+                if(!test)
+                    return;
 
                 // pintar
                 if(!currentPlace.opt.isStart && !currentPlace.opt.isEnd)
                     scene.ctrl.draw(currentPlace, 0x0000FF);
                 
                 // adionando a lista de já passei por aqui
-                currentPlace.opt.backTrace = true;
+                currentPlace.opt.traceBack = true;
 
-                // achei caminho completo
+                // achei caminho completo   <--------------------------------------------------------------------------------------- isso tem ir para o loop de parents
                 if(currentPlace.opt.i === start.opt.i) {
 
-                    backTrace[currentPlace.opt.i] = currentPlace.opt.i;
+                    traceBack[currentPlace.opt.i] = currentPlace.opt.i;
                     if(!currentPlace.opt.isStart && !currentPlace.opt.isEnd)
                         scene.ctrl.draw(currentPlace, 0x0000FF);
-                    // console.log('backtrace complete');
+                    // console.log('traceBack complete');
 
                     let style = {fontFamily: 'Arial', fontSize: '24px', color: '#FF0000', backgroundColor: '#FFFFFF'};
                     scene.add.text(50, 50, 'DONE! Reload?', style);
@@ -235,41 +255,58 @@ const controller = (scene) => {
                     return;
                 }
                 
-                // pegar parents, que estão na lista de closeds e não estão na de backtrace
+                // pegar parents, que estão na lista de closeds e não estão na de traceBack
                 let parents = scene.ctrl.getParents(scene.grid, currentPlace, closeds);
                 
                 //  estou sem parents, então tô preso e vou resetar, removendo a currentplcae da lista de closeds
                 if(parents.length === 0){
                     
-                    console.log('im stucky');
+                    console.log('im stucky', currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
                     closeds[currentPlace.opt.i] = false;
                     scene.ctrl.draw(currentPlace);
                     scene.ctrl.traceBack(closeds, start, end);
                     return;
                 }
 
+                lastPlace = currentPlace;
+
+                console.log('step', step, currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
+                step++;
+                
                 // só tenho uma opção, então é ela
                 if(parents.length === 1){
                     
                     currentPlace = parents[0];
                     continue;
                 }
-                
-                // pegar o parente com elemento com o valor maior h
-                let h = 0;
+
+                // pegar o parente com elemento com o valor maior força // estou correndo de traz pra frente
+                let f = 0;
                 for(let i = 0; i < parents.length; i++){
 
-                    // pegar parente com maior valor e que não tá na lista bactrace
-                    if(parents[i].opt.backTrace || parents[i].opt.h < h)
+                    // já passei por essa casa, ignore ela
+                    if(parents[i].opt.traceBack)
                         continue;
-                        
+
+                    // essa casa tem uma pontiação menor dq a já escolhida, igonre ela
+                    if(parents[i].opt.f < f)
+                        continue
+
                     // melhor opção
-                    h = parents[i].opt.h;
+                    f = parents[i].opt.f;
                     currentPlace = parents[i];
                 }
 
-                if(!teste)
-                    return;
+                // currentplace já foi visto e não escolhido
+                if(alreadysee[currentPlace.opt.i] && alreadysee[currentPlace.opt.i] === true)
+                    console.log('see but not cheoiced, why?', currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
+
+                // vi essass casas e não escolhi
+                for(let i = 0; i < parents.length; i++){
+
+                    if(currentPlace.opt.i !== parents[i].opt.i)
+                        alreadysee[parents[i].opt.i] = true;
+                }
             }
         },
 

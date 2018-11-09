@@ -25,7 +25,7 @@ class AStar extends Phaser.Scene {
         this.ctrl.about('Demontração de algoritmo para buscar o melhor caminho de A a B com base no famoso algoritmo "A*".');
         this.width = this.game.config.width;
         this.height = this.game.config.height;
-        this.scl = 20;
+        this.scl = 30;
         this.graph = this.add.graphics();
         
         // lista caminho aberto (open)
@@ -47,46 +47,60 @@ class AStar extends Phaser.Scene {
         G
         0  1  2  4  5x
         A -> | 3 | ->
-        ->      | 1
-        | 2
-        | 3  H
-        | 4
-        B 5
+                    | 1
+                    | 2
+                    | 3  H
+                    | 4
+                    B 5
         
-        G é o custo que se tem pra pular de uma casa para outra.da casa A para casa C pode ser = 2, mas da casa B (localização atual é 1). 
-        Então G é sempre 1.
-        H é o custo real que cada casa tem até chegar no ponto final.
+        G é o custo que cada passo (se soma mais um).
+        Se uma casa aberta aparece novamente, voce pode identificar se vc tá dando voltas pelo G atual vs o G da casa.
+        H é o custo real que cada casa tem em relação ao ponto final.
+        
+        G pode parecer a primeira vista desnecessário, mas ajuda o boneco a achar o caminho mais perto e não andar em circulos.
         
         então a casa (x) tem um custo de (5 passos para cheagr até + um estimado 5 passos para chegar na chegada)
-        Com G pode se pode ser creativo, imgone adicona um extra de esforço casa a acasa seja um terreno especial (lama, agua, etc..)
-        No exemplo a baixo não foi necessário utlizar G
+        Com G/H pode se pode ser creativo, imgone adicona um extra de esforço casa a acasa seja um terreno especial (lama, agua, etc..)
         
         */
        
         let obstaclePropability = 30;
         this.grid = this.ctrl.makeGrid(obstaclePropability);
 
+        let ry1 = Math.floor(Math.random() * (this.height / this.scl));
+        let rx1 = Math.floor(Math.random() * (this.width / this.scl));
+        let ry2 = Math.floor(Math.random() * (this.height / this.scl));
+        let rx2 = Math.floor(Math.random() * (this.width / this.scl));
+        
+        this.start = this.ctrl.setStart(this.grid[ry1][rx1]);
+        this.end = this.ctrl.setEnd(this.grid[ry2][rx2]);
+        this.ctrl.calcH(this.grid, this.end);
+        this.ctrl.calcG(this.grid, this.start);
+        this.ctrl.drawGrid(this.grid);
         // this.diagonal = true;
         this.openPlaces = [];
         this.closedPlaces = [];
-        this.done = false;
+        
+        this.reset = () => {
+            
+            for(let i in this.closedPlaces) {
+            
+                if(this.closedPlaces[i].opt.isObstacle){
 
+                    this.ctrl.draw(this.closedPlaces[i], 0x000000);
+                    continue;
+                }
+                
+                this.ctrl.draw(this.closedPlaces[i], 0x999999);
+            }
+            
+            this.openPlaces = [];
+            this.closedPlaces = [];
+            this.done = false;
+            this.openPlaces[this.start.opt.i] = this.start;
+        };
 
-        let ry = Math.floor(Math.random() * (this.height / this.scl));
-        let rx = Math.floor(Math.random() * (this.width / this.scl));
-
-        this.start = this.ctrl.setStart(this.grid[ry][rx]);
-
-        ry = Math.floor(Math.random() * (this.height / this.scl));
-        rx = Math.floor(Math.random() * (this.width / this.scl));
-        this.end = this.ctrl.setEnd(this.grid[ry][rx]);
-
-        this.ctrl.calcH(this.grid, this.end);
-
-        this.ctrl.drawGrid(this.grid);
-        this.openPlaces = [];
-        this.openPlaces[this.start.opt.i] = this.start;
-
+        this.reset();
         // this.frame = 0;
     }
 
@@ -104,8 +118,8 @@ class AStar extends Phaser.Scene {
         if(!this.openPlaces.length)
             return;
 
-        // pegando a casa com menor pontuação da lista de abertos
-        let f = 9**9;
+        // pegando a casa com menor pontuação H da lista de abertos
+        let h = 9**9;
         let currrentPlace = null;
 
         for(let i in this.openPlaces) {
@@ -114,10 +128,10 @@ class AStar extends Phaser.Scene {
                 continue;
 
 
-            if(this.openPlaces[i].opt.f > f)
+            if(this.openPlaces[i].opt.h > h)
                 continue;
     
-            f = this.openPlaces[i].opt.f;
+            h = this.openPlaces[i].opt.h;
             currrentPlace = this.openPlaces[i];
         }
 
@@ -134,6 +148,7 @@ class AStar extends Phaser.Scene {
         // pitando casa atual de vermelho
         if(!currrentPlace.opt.isStart && !currrentPlace.opt.isEnd)
             this.ctrl.draw(currrentPlace);
+
 
         // adicionando casa atual a closed
         this.closedPlaces[currrentPlace.opt.i] = currrentPlace;
@@ -156,7 +171,6 @@ class AStar extends Phaser.Scene {
 
         parents.filter((parent) => {
             
-            let f = parent.opt.h;   // lembre é  G + H, no meu algo identifiquei uma forma de usar apenas H
             let i = parent.opt.i;
             // se tá na lista de fechados, continue
             if(this.closedPlaces[i])
@@ -165,8 +179,13 @@ class AStar extends Phaser.Scene {
             // se não tá na lista de abertos, computar f e adiconar
             if(!this.openPlaces[parent.opt.i]) {
                 
-                parent.opt.f = f;
+                // parent.opt.f = parent.opt.g + parent.opt.h; // F = G + H,
+                parent.opt.f = parent.opt.h; // F = G + H,
                 this.openPlaces[parent.opt.i] = parent;
+                
+                // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
+                // this.add.text(parent.opt.x * this.scl + 15, parent.opt.y * this.scl, parent.opt.f, style);
+
                 return parent;
             }
 
