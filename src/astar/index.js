@@ -20,14 +20,7 @@ class AStar extends Phaser.Scene {
     }
 
     create() {
-
-        this.ctrl = controller(this);
-        this.ctrl.about('Minha versão do famoso algoritmo "A*".');
-        this.width = this.game.config.width;
-        this.height = this.game.config.height;
-        this.scl = 10;
-        this.graph = this.add.graphics();
-        
+       
         // lista caminho aberto (open)
         // lista fechado (closed)
         // ponto de partida deve se encontar no lista de abertos
@@ -69,46 +62,33 @@ class AStar extends Phaser.Scene {
         SE vc utiliza F ele rastreia mais caminhos.
         
         */
+
+    
+        this.ctrl = controller(this);
+        this.ctrl.about(['<span>Já tentou calcular o melhor caminho sem calcular todas as possibilidades possiveis? Minha versão do famoso algoritmo "A*".<span />']);
+        this.width = this.game.config.width;
+        this.height = this.game.config.height;
+        this.scl = 10;
+        this.graph = this.add.graphics();
        
+        // this.diagonal = true;
         let obstaclePropability = 30;
         this.grid = this.ctrl.makeGrid(obstaclePropability);
+        this.start = this.ctrl.setStart(this.grid);
+        this.end = this.ctrl.setEnd(this.grid);
+        this.ctrl.getParentsAndH(this.grid, this.end);
 
-        let ry1 = Math.floor(Math.random() * (this.height / this.scl));
-        let rx1 = Math.floor(Math.random() * (this.width / this.scl));
-        let ry2 = Math.floor(Math.random() * (this.height / this.scl));
-        let rx2 = Math.floor(Math.random() * (this.width / this.scl));
-        
-        this.start = this.ctrl.setStart(this.grid[ry1][rx1]);
-        this.end = this.ctrl.setEnd(this.grid[ry2][rx2]);
-        this.ctrl.calcH(this.grid, this.end);
         this.g = 0;
-        this.ctrl.drawGrid(this.grid);
-        // this.diagonal = true;
-        this.openPlaces = [];
-        this.closedPlaces = [];
-            
-        for(let i in this.closedPlaces) {
-        
-            if(this.closedPlaces[i].opt.isObstacle){
-
-                this.ctrl.draw(this.closedPlaces[i], 0x000000);
-                continue;
-            }
-            
-            this.ctrl.draw(this.closedPlaces[i], 0x999999);
-        }
-        
         this.openPlaces = [];
         this.closedPlaces = [];
         this.done = false;
-        this.openPlaces[this.start.opt.i] = this.start;
+        this.openPlaces[this.start.opt.id] = this.start;
     }
 
     update() {
 
         if(this.done)
             return;
-
 
         if(!this.openPlaces.length)
             return;
@@ -118,75 +98,69 @@ class AStar extends Phaser.Scene {
         let f = 9**9;
         let currrentPlace = null;
 
-        for(let i in this.openPlaces) {
+        for(let id in this.openPlaces) {
 
-            if(!this.openPlaces[i])
+            // desconsiderando deletados da lista
+            if(!this.openPlaces[id])
                 continue;
-
-
-            if(this.openPlaces[i].opt.f > f)
+            
+            
+            // pegando melhor pontuação
+            if(this.openPlaces[id].opt.f > f)
                 continue;
     
-            f = this.openPlaces[i].opt.f;
-            currrentPlace = this.openPlaces[i];
+            f = this.openPlaces[id].opt.f;
+            currrentPlace = this.openPlaces[id];
         }
 
         // ops, não tenho para onde ir
         if(!currrentPlace) {
 
-            let style = {fontFamily: 'Arial', fontSize: '24px', color: '#FF0000', backgroundColor: '#FFFFFF'};
-            this.add.text(50, 50, 'NO WAY! Reload?', style);
-            this.ctrl.reload();
+            this.ctrl.reload('NO WAY! Reload?');
             this.done = true;
             return;
         }
 
         // G
         this.g = currrentPlace.opt.g + 1;
-
-        // pitando casa atual de vermelho
-        if(!currrentPlace.opt.isStart && !currrentPlace.opt.isEnd)
-            this.ctrl.draw(currrentPlace);
-
-
+        
         // adicionando casa atual a closed
-        this.closedPlaces[currrentPlace.opt.i] = currrentPlace;
+        this.closedPlaces[currrentPlace.opt.id] = currrentPlace;
         
         // removendo a casa dos abertos
-        this.openPlaces[currrentPlace.opt.i] = false;
+        this.openPlaces[currrentPlace.opt.id] = false;
 
-        // se casa atual é final, aehhh
-        if(currrentPlace.opt.isEnd) {
+        // pitando casa atual de vermelho
+        currrentPlace.opt.isEmpty = true;
+        this.ctrl.drawPlace(currrentPlace);
 
-            // console.log('path found');
-            this.done = true;
-            // backtrace rota
-            this.ctrl.traceBack(this.closedPlaces, this.start, this.end);
-            return;
-        }
+        currrentPlace.opt.parents.filter((parent) => {
 
-        // parents
-        let parents = this.ctrl.getParents(this.grid, currrentPlace);
-
-        parents.filter((parent) => {
+            // parando o lop caso já encontrei o final
+            if(this.done)
+                return;
+        
+            // se casa atual é final, aehhh
+            if(parent.opt.isEnd) {
+                
+                // this.closedPlaces[this.end.opt.id] = this.end;
+                this.done = true;
+                // backtrace rota
+                this.ctrl.traceBack(this.closedPlaces, this.end);
+                return;
+            }
             
-            let i = parent.opt.i;
+            let id = parent.opt.id;
             // se tá na lista de fechados, continue
-            if(this.closedPlaces[i])
+            if(this.closedPlaces[id])
                 return parent;
             
             // se não tá na lista de abertos, computar g + f
-            if(!this.openPlaces[parent.opt.i]) {
+            if(!this.openPlaces[parent.opt.id]) {
                 
                 parent.opt.g = this.g; // F = G + H,
                 parent.opt.f = parent.opt.g + parent.opt.h; // F = G + H,
-                this.openPlaces[parent.opt.i] = parent;
-                
-                // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
-                // this.add.text(parent.opt.x * this.scl, parent.opt.y * this.scl, parent.opt.g, style);
-                // this.add.text(parent.opt.x * this.scl + 12, parent.opt.y * this.scl, parent.opt.h, style);
-                // this.add.text(parent.opt.x * this.scl + 12, parent.opt.y * this.scl + 12, parent.opt.f, style);
-
+                this.openPlaces[parent.opt.id] = parent;
                 return parent;
             }
 

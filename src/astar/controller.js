@@ -8,9 +8,23 @@ const controller = (scene) => {
 
             let body = document.getElementsByTagName('body')[0];
             let about = document.createElement('div');
+            text = text.join('<br />');
             about.innerHTML = text;
             about.id = 'about';
             body.appendChild(about);
+        },
+
+        reload: (txt) => {
+
+            let style = {fontFamily: 'Arial', fontSize: '24px', color: '#FF0000', backgroundColor: '#FFFFFF'};
+            scene.add.text(50, 50, txt, style);
+
+            let canvas = document.getElementsByTagName('canvas')[0];
+            canvas.style.cursor = 'pointer';
+            canvas.addEventListener('click', () => {
+
+                window.location.reload();
+            });
         },
 
         makeGrid(obstaclePropability = 10) {
@@ -24,16 +38,17 @@ const controller = (scene) => {
                     grid[y][x] = new Phaser.Geom.Rectangle(x * scene.scl, y * scene.scl, scene.scl, scene.scl);
                     grid[y][x].opt = {
 
-                        i: (y + x * scene.height) * 4,
+                        id: (y + x * scene.height) * 4,
                         y,
                         x,
+                        h: 0,
+                        g: 0,
+                        f: 0,
                         isStart: false,
                         isEnd: false,
                         isObstacle: false,
-                        traceBack: false,
-                        h: 0,
-                        g: 0,
-                        f: 0
+                        isRoute: false,
+                        isEmpty: false
                     };
 
                     let rand = Math.random() * 100;
@@ -46,75 +61,24 @@ const controller = (scene) => {
                             isObstacle: true
                         };
                     }
+
+                    scene.ctrl.drawPlace(grid[y][x]);
                 }
             }
             
             return grid;
         },
 
-        calcH: (grid, end) => {
-
-            scene.ctrl.loopThrough(grid, (place) => {
-
-                place.opt.h = Math.abs(place.opt.y - end.opt.y) + Math.abs(end.opt.x - place.opt.x);;
-            });
-        },
-
-        drawGrid: (grid) => {
-
-            scene.ctrl.loopThrough(grid, (place) => {
-
-                // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
-                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.h, style);
-                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 12, place.opt.g, style);
-                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.y, style);
-                // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 12, place.opt.x, style);
-                // scene.add.text(place.opt.x * scene.scl + 20, place.opt.y * scene.scl, place.opt.f, style);
-
-                if(place.opt.isObstacle){
-
-                    scene.ctrl.draw(place, 0x000000);
-                    return;
-                }
-                
-                if(place.opt.isStart || place.opt.isEnd ){
-
-                    scene.ctrl.draw(place, 0xFF0000);
-                    return;
-                }
-                
-                scene.graph.fillStyle(0x999999, 1);  
-                scene.graph.fillRectShape(place);
-
-            });
-        },
-
-        setStart: (place) => {
-
-            // ponto de partida
-            place.opt.isStart = true;
-            place.opt.isClosed = true;
-            place.opt.isObstacle = false;
-            return place;
-        },
-        
-        setEnd: (place) => {
+        getParentsAndH: (grid, end) => {
             
-            // ponto de chegada
-            place.opt.isEnd = true;
-            place.opt.isClosed = true;
-            place.opt.isObstacle = false;
-            return place;
+            scene.ctrl.loopThrough(grid, (place) => {
+                
+                place.opt.h = Math.abs(place.opt.y - end.opt.y) + Math.abs(end.opt.x - place.opt.x);
+                place.opt.parents = scene.ctrl.getParents(grid, place)
+            });
         },
 
-        loopThrough: (list, callBack) => {
-
-            for(let y in list)
-                for(let x in list[y])
-                    callBack(list[y][x])
-        },
-
-        getParents: (grid, place, closeds = false) => {
+        getParents: (grid, place) => {
 
             let parents = [];
             let y = place.opt.y;
@@ -162,130 +126,102 @@ const controller = (scene) => {
             if(grid[y][x+1] && !grid[y][x+1].opt.isObstacle)
                 parents.push(grid[y][x+1]);
 
-            if(closeds) {
-
-                let closedsParents = [];
-                parents.filter((parent) => {
-                    
-                    // se parent não fizer parta da lista closeds, ignorar
-                    for(let i in closeds) {
-
-                        // se closed foi removido (beco sem saida), ignorar
-                        if(!closeds)
-                            continue;
-                        
-                        if(parseInt(i) !== parseInt(parent.opt.i))
-                            continue;
-
-                        if(parent.opt.traceBack)
-                            continue;
-                        
-                        closedsParents.push(parent);
-                    }
-                    
-                    return parent;
-                });
-                
-                return closedsParents;
-            }
-
             return parents;
         },
-        
-        draw: (place, color = 0x00FF00) => {
 
+        setStart: (grid) => {
+
+            let ry = Math.floor(Math.random() * (scene.height / scene.scl));
+            let rx = Math.floor(Math.random() * (scene.width / scene.scl));
+
+            // ponto de partida
+            grid[ry][rx].opt.isStart = true;
+            grid[ry][rx].opt.isClosed = true;
+            grid[ry][rx].opt.isObstacle = false;
+            scene.ctrl.drawPlace(grid[ry][rx]);
+            return grid[ry][rx];
+        },
+        
+        setEnd: (grid) => {
+            
+            let ry = Math.floor(Math.random() * (scene.height / scene.scl));
+            let rx = Math.floor(Math.random() * (scene.width / scene.scl));
+            
+            // ponto de chegada
+            grid[ry][rx].opt.isEnd = true;
+            grid[ry][rx].opt.isClosed = true;
+            grid[ry][rx].opt.isObstacle = false;
+            scene.ctrl.drawPlace(grid[ry][rx]);
+            return grid[ry][rx];
+        },
+
+        loopThrough: (list, callBack) => {
+
+            for(let y in list)
+                for(let x in list[y])
+                    callBack(list[y][x])
+        },
+        
+        drawPlace: (place) => {
+
+            // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
+            // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.g, style);
+            // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 12, place.opt.g, style);
+            // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.y, style);
+            // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 12, place.opt.x, style);
+            // scene.add.text(place.opt.x * scene.scl + 20, place.opt.y * scene.scl, place.opt.f, style);
+
+            let color =  0x999999;
+
+            if(place.opt.isObstacle)
+                color =  0x000000;
+
+            if(place.opt.isEmpty)
+                color =  0x00FF00;
+
+            if(place.opt.isRoute)
+                color =  0x0000FF;
+            
+            if(place.opt.isStart || place.opt.isEnd )
+                color = 0xFF0000;
+            
             scene.graph.fillStyle(color, 1);  
             scene.graph.fillRectShape(place);
         },
 
-        traceBack: (closeds, start, end) => {
-
-            // resentando lista de traceBack
-            for(let i in closeds){
-                // se foi excluido para resetar, ignorar
-                if(!closeds[i])
-                    continue;
-                closeds[i].opt.traceBack = false; // <-------------------------------------------------------------------ISSO TEM QUE MELHORAR
-                if(!closeds[i].opt.isStart && !closeds[i].opt.isEnd)
-                    scene.ctrl.draw(closeds[i], 0x00FF00);
-            }
+        traceBack: (closeds, end) => {
 
             let currentPlace = end;
-            let traceBack = [];
-            let lastPlace = null;
 
-            // a casa atual já foi vista antes e não foi escolhida!
-            // então saberei se escholer ela agora que "eu passei por ela e voltei pra ela"
-            let alreadysee = [];
-
-            let step = 0;
-
-            let test = 550;
             while(true) {
-                test--;
-                if(!test)
-                    return;
 
                 // pintar
-                if(!currentPlace.opt.isStart && !currentPlace.opt.isEnd)
-                    scene.ctrl.draw(currentPlace, 0x0000FF);
-                
-                // adionando a lista de já passei por aqui
-                currentPlace.opt.traceBack = true;
+                if(!currentPlace.opt.isStart && !currentPlace.opt.isEnd){
 
-                // achei caminho completo   <--------------------------------------------------------------------------------------- isso tem ir para o loop de parents
-                if(currentPlace.opt.i === start.opt.i) {
-
-                    traceBack[currentPlace.opt.i] = currentPlace.opt.i;
-                    if(!currentPlace.opt.isStart && !currentPlace.opt.isEnd)
-                        scene.ctrl.draw(currentPlace, 0x0000FF);
-                    // console.log('traceBack complete');
-
-                    let style = {fontFamily: 'Arial', fontSize: '24px', color: '#FF0000', backgroundColor: '#FFFFFF'};
-                    scene.add.text(50, 50, 'DONE! Reload?', style);
-                    scene.ctrl.reload();
-                    return;
+                    currentPlace.opt.isRoute = true;
+                    scene.ctrl.drawPlace(currentPlace);
                 }
                 
-                // pegar parents, que estão na lista de closeds e não estão na de traceBack
-                let parents = scene.ctrl.getParents(scene.grid, currentPlace, closeds);
-                
-                //  estou sem parents, então tô preso e vou resetar, removendo a currentplcae da lista de closeds
-                if(parents.length === 0){
-                    
-                    console.log('im stucky', currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
-                    closeds[currentPlace.opt.i] = false;
-                    scene.ctrl.draw(currentPlace);
-                    scene.ctrl.traceBack(closeds, start, end);
-                    return;
-                }
+                // pegar parents, que estão na lista de closeds
+                let parents = [];
+                currentPlace.opt.parents.filter((parent) => {
+                    if(!closeds[parent.opt.id])
+                        return;
 
-                lastPlace = currentPlace;
+                    parents.push(parent);
+                });
 
-                // console.log('step', step, currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
-                step++;
-                
-                // só tenho uma opção, então é ela
-                if(parents.length === 1){
-                    
-                    currentPlace = parents[0];
-                    continue;
-                }
-
-                // pegar o parente com elemento com o valor maior força // estou correndo de traz pra frente
-                let f = 0;
-                let g = 99**99;
+                // pegar o parente com elemento com o valor menor de G // estou correndo de traz pra frente
+                let g = 9**9;
                 for(let i = 0; i < parents.length; i++){
 
-                    // já passei por essa casa, ignore ela
-                    if(parents[i].opt.traceBack)
-                        continue;
+                    if(parents[i].opt.isStart){
 
-                    // // essa casa tem uma pontiação menor dq a já escolhida, igonre ela
-                    // if(parents[i].opt.f < f)
-                    //     continue
+                        scene.ctrl.reload('DONE! Reload?');
+                        return;
+                    }
 
-                    // essa casa tem uma pontiação menor dq a já escolhida, igonre ela
+                    // essa casa tem sempre a menor pontuação G
                     if(parents[i].opt.g > g)
                         continue
 
@@ -294,27 +230,7 @@ const controller = (scene) => {
                     currentPlace = parents[i];
                 }
 
-                // currentplace já foi visto e não escolhido
-                if(alreadysee[currentPlace.opt.i] && alreadysee[currentPlace.opt.i] === true)
-                    console.log('see but not cheoiced, why?', currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
-
-                // vi essass casas e não escolhi
-                for(let i = 0; i < parents.length; i++){
-
-                    if(currentPlace.opt.i !== parents[i].opt.i)
-                        alreadysee[parents[i].opt.i] = true;
-                }
             }
-        },
-
-        reload: () => {
-
-            let canvas = document.getElementsByTagName('canvas')[0];
-            canvas.style.cursor = 'pointer';
-            canvas.addEventListener('click', () => {
-
-                window.location.reload();
-            });
         }
     };
 };
