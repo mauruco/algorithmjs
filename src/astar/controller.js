@@ -60,19 +60,11 @@ const controller = (scene) => {
             });
         },
 
-        calcG: (grid, start) => {
-
-            scene.ctrl.loopThrough(grid, (place) => {
-
-                place.opt.g = Math.abs(place.opt.y - start.opt.y) + Math.abs(start.opt.x - place.opt.x);;
-            });
-        },
-
         drawGrid: (grid) => {
 
             scene.ctrl.loopThrough(grid, (place) => {
 
-                let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
+                // let style = {fontFamily: 'Arial', fontSize: '12px', color: '#FFFFFF', backgroundColor: '#000000'};
                 // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.h, style);
                 // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl + 12, place.opt.g, style);
                 // scene.add.text(place.opt.x * scene.scl, place.opt.y * scene.scl, place.opt.y, style);
@@ -270,7 +262,7 @@ const controller = (scene) => {
 
                 lastPlace = currentPlace;
 
-                console.log('step', step, currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
+                // console.log('step', step, currentPlace.opt.y, currentPlace.opt.x, currentPlace.opt.i);
                 step++;
                 
                 // só tenho uma opção, então é ela
@@ -282,18 +274,23 @@ const controller = (scene) => {
 
                 // pegar o parente com elemento com o valor maior força // estou correndo de traz pra frente
                 let f = 0;
+                let g = 99**99;
                 for(let i = 0; i < parents.length; i++){
 
                     // já passei por essa casa, ignore ela
                     if(parents[i].opt.traceBack)
                         continue;
 
+                    // // essa casa tem uma pontiação menor dq a já escolhida, igonre ela
+                    // if(parents[i].opt.f < f)
+                    //     continue
+
                     // essa casa tem uma pontiação menor dq a já escolhida, igonre ela
-                    if(parents[i].opt.f < f)
+                    if(parents[i].opt.g > g)
                         continue
 
                     // melhor opção
-                    f = parents[i].opt.f;
+                    g = parents[i].opt.g;
                     currentPlace = parents[i];
                 }
 
