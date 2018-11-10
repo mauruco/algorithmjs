@@ -1,5 +1,6 @@
 import Phaser from '../Phaser';
 import controller from './controller';
+import { about } from '../tools';
 
 class Solar extends Phaser.Scene {
 
@@ -49,8 +50,8 @@ class Solar extends Phaser.Scene {
 
     create() {
 
+        about(['<span>Trigonometria.</span>']);
         this.ctrl = controller(this);
-        this.ctrl.text();
         this.worldWH = this.game.config.width;
         this.planet = this.ctrl.newPlanet(200);
         this.planet = this.ctrl.planetOrbit(this.planet, this.planetSpeed);

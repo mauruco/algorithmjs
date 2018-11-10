@@ -7,13 +7,7 @@ import { pixel } from '../tools';
 const controller = (scene) => {
 
     return {
-
-        text: () => {
-
-            let opt = document.getElementById('opt');
-            opt.innerHTML = '<span class="inline">A suavidade de Perlin Noise!</span>';
-        },
-
+        
         simpleNoiseGraph: (noise, width) => {
 
             let points = [];

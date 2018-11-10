@@ -1,5 +1,6 @@
 import Phaser from '../Phaser';
 import Ball from './Ball';
+import { about } from '../tools';
 
 class Wave extends Phaser.Scene {
 
@@ -19,15 +20,9 @@ class Wave extends Phaser.Scene {
         super({key: 'Wave'});
     }
 
-    text() {
-
-        let opt = document.getElementById('opt');
-        opt.innerHTML = '<span class="inline">Seno e cosseno trabalhando juntos!</span>';
-    }
-
     create() {
 
-        this.text();
+        about(['<span>Seno e cosseno trabalhando juntos.</span>']);
 
         this.balls = [];
         for(let i = 0; i < 600; i++)

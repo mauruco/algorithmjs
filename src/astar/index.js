@@ -1,5 +1,6 @@
 import Phaser from '../Phaser';
 import controller from './controller';
+import { about } from '../tools';
 
 class AStar extends Phaser.Scene {
 
@@ -64,8 +65,8 @@ class AStar extends Phaser.Scene {
         */
 
     
+        about(['<span>Já tentou calcular o melhor caminho sem calcular todas as possibilidades possiveis? Minha versão do famoso algoritmo "A*".<span />']);
         this.ctrl = controller(this);
-        this.ctrl.about(['<span>Já tentou calcular o melhor caminho sem calcular todas as possibilidades possiveis? Minha versão do famoso algoritmo "A*".<span />']);
         this.width = this.game.config.width;
         this.height = this.game.config.height;
         this.scl = 10;

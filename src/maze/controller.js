@@ -4,29 +4,6 @@ const controller = (scene) => {
 
     return {
 
-        about: (text) => {
-
-            let body = document.getElementsByTagName('body')[0];
-            let about = document.createElement('div');
-            text = text.join('<br />');
-            about.innerHTML = text;
-            about.id = 'about';
-            body.appendChild(about);
-        },
-
-        reload: (txt) => {
-
-            let style = {fontFamily: 'Arial', fontSize: '24px', color: '#FF0000', backgroundColor: '#FFFFFF'};
-            scene.add.text(50, 50, txt, style);
-
-            let canvas = document.getElementsByTagName('canvas')[0];
-            canvas.style.cursor = 'pointer';
-            canvas.addEventListener('click', () => {
-
-                window.location.reload();
-            });
-        },
-
         makeGrid() {
 
             let grid = [];
@@ -58,7 +35,7 @@ const controller = (scene) => {
             return grid;
         },
 
-        getParents: (grid, end) => {
+        getParents: (grid) => {
             
             scene.ctrl.loopThrough(grid, (spot) => {
 
@@ -77,6 +54,8 @@ const controller = (scene) => {
                 if(grid[y][x-1])
                     spot.opt.parents.push(grid[y][x-1]);
             });
+
+            return grid;
         },
 
         loopThrough: (list, callBack) => {
@@ -86,13 +65,13 @@ const controller = (scene) => {
                     callBack(list[y][x])
         },
         
-        drawStop: (spot, current = false) => {
+        drawSpot: (spot, current = false) => {
 
             let backgroundColor = 0x999999;
             if(spot.opt.visited)
-                backgroundColor = 0x0000FF;
+                backgroundColor = 0x00007B;
             if(current)
-                backgroundColor = 0xFF0000;
+                backgroundColor = 0x7B0000;
             
             scene.graph.fillStyle(backgroundColor, 1);  
             scene.graph.fillRectShape(spot);

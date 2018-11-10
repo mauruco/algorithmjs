@@ -1,6 +1,7 @@
 import Phaser from '../Phaser';
 import controller from './controller';
 import PerlinNoise from './PerlinNoise';
+import { about } from '../tools';
 
 class Noise extends Phaser.Scene {
 
@@ -24,6 +25,8 @@ class Noise extends Phaser.Scene {
 
     create() {
 
+        about(['<span>A suavidade de Perlin Noise.</span>']);
+
         this.width = this.game.config.width;
         this.height = this.game.config.height;
         this.scl = 20;
@@ -32,7 +35,6 @@ class Noise extends Phaser.Scene {
         this.count = 0;
         
         this.ctrl = controller(this);
-        this.ctrl.text();
         this.grid = this.ctrl.makeGrid(this.scl, this.width, this.height);
 
         this.graph = this.add.graphics();

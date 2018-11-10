@@ -1,6 +1,7 @@
 import Phaser from '../Phaser';
 import Perc from './Perceptron';
 import controller from './controller';
+import { about } from '../tools'; 
 
 class Perceptron extends Phaser.Scene {
 
@@ -26,6 +27,8 @@ class Perceptron extends Phaser.Scene {
     }
 
     create() {
+
+        about(['<span>Machine learning perceptron.</span>']);
 
         // scene com cartesian clássico (y tá invertido)  
         /*          y
@@ -59,10 +62,10 @@ class Perceptron extends Phaser.Scene {
 
     update() {
 
-        // this.i++;
-        // if(this.i < 10)
-        //     return;
-        // this.i = 0;
+        this.i++;
+        if(this.i < 5)
+            return;
+        this.i = 0;
 
         this.graph.clear();
         this.ctrl.drawLine(this.calcY);

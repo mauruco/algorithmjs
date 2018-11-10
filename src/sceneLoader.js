@@ -6,7 +6,6 @@ import Wave from './wave';
 import Noise from './perlinnoise';
 import Supershape from './supershape';
 import Display from './display';
-import Pathfinderfluid from './pathfinderfluid';
 import Perceptron from './perceptron';
 import SupervisedLearning from './supervisedlearning';
 import AStar from './astar';
@@ -39,9 +38,6 @@ export const sceneLoader = () => {
 
     if(hash === '#display')
         new Phaser.Game(Display.config());
-
-    if(hash === '#pathfinderfluid')
-        new Phaser.Game(Pathfinderfluid.config());
 
     if(hash === '#perceptron')
         new Phaser.Game(Perceptron.config());

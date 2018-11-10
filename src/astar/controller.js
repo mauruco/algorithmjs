@@ -4,16 +4,6 @@ const controller = (scene) => {
 
     return {
 
-        about: (text) => {
-
-            let body = document.getElementsByTagName('body')[0];
-            let about = document.createElement('div');
-            text = text.join('<br />');
-            about.innerHTML = text;
-            about.id = 'about';
-            body.appendChild(about);
-        },
-
         reload: (txt) => {
 
             let style = {fontFamily: 'Arial', fontSize: '24px', color: '#FF0000', backgroundColor: '#FFFFFF'};

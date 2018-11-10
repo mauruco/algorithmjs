@@ -1,5 +1,5 @@
 import Phaser from '../Phaser';
-import { pixel } from '../tools';
+import { pixel, about } from '../tools';
 import NeuralNetwork from './NeuralNetwork'; 
 
 class SupervisedLearning extends Phaser.Scene {
@@ -24,6 +24,8 @@ class SupervisedLearning extends Phaser.Scene {
 
         // entrada são numeros entre 0 e 1
         // saida saõ numeros entre 0 e 1
+
+        about(['<span>Problema XOR. Machine learning, neural network.</span>']);
 
         this.scl = 5;
         this.width = this.game.config.width;

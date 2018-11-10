@@ -1,4 +1,5 @@
 import Phaser from '../Phaser';
+import { about } from '../tools';
 
 class Display extends Phaser.Scene {
     
@@ -16,12 +17,6 @@ class Display extends Phaser.Scene {
     constructor() {
 
         super({key: 'Display'});
-    }
-
-    text() {
-
-        let opt = document.getElementById('opt');
-        opt.innerHTML = '<span class="inline">Display de 7 segmentos!</span>';
     }
 
     display (graph, width, height) {
@@ -154,7 +149,7 @@ class Display extends Phaser.Scene {
 
     create() {
 
-        this.text();
+        about(['<span>Bit Manipulação. Display de 7 segmentos.</span>']);
         this.width  = this.game.config.width;
         this.height  = this.game.config.height;
         this.graph = this.add.graphics();

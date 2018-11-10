@@ -4,12 +4,6 @@ const controller = (scene) => {
 
     return {
 
-        text: () => {
-
-            let opt = document.getElementById('opt');
-            opt.innerHTML = '<span class="inline">Curte trigonometria?</span>';
-        },
-
         newPlanet: (orbitRadius) => {
 
             scene.add.image(0, 0, 'sun');

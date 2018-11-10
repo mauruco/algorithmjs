@@ -1,6 +1,6 @@
 import Phaser from '../Phaser';
 import { mapRange } from '../helpers';
-import { pixel } from '../tools';
+import { pixel, about } from '../tools';
 
 class Supershape extends Phaser.Scene {
 
@@ -25,12 +25,6 @@ class Supershape extends Phaser.Scene {
     preload() {
 
         this.load.image('background', 'assets/supershape/background.png');
-    }
-
-    text() {
-
-        let opt = document.getElementById('opt');
-        opt.innerHTML = '<span class="inline">Supershape!</span>';
     }
 
     supershape(theta, m, n) {
@@ -76,12 +70,13 @@ class Supershape extends Phaser.Scene {
 
     create() {
 
+        about(['<span>Supershape.</span>']);
+
         this.width = this.game.config.width;
         this.height = this.game.config.height;
         this.mouse = this.input.mousePointer;
         this.graph = this.add.graphics();
         this.graph.setDefaultStyles(this.defaultStyles);
-        this.text();
         
         this.back = this.add.image(this.width/2, this.height/2, 'background');
         this.m = this.add.text(40, 20, 'm = 0', { fontSize: '12px', color: '#000000', backgroundColor: '#FFFFFF' });
