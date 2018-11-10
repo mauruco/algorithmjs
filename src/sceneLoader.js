@@ -10,6 +10,7 @@ import Pathfinderfluid from './pathfinderfluid';
 import Perceptron from './perceptron';
 import SupervisedLearning from './supervisedlearning';
 import AStar from './astar';
+import Maze from './maze';
 
 export const sceneLoader = () => {
 
@@ -50,4 +51,7 @@ export const sceneLoader = () => {
 
     if(hash === '#astar')
         new Phaser.Game(AStar.config());
+
+    if(hash === '#maze')
+        new Phaser.Game(Maze.config());
 }
