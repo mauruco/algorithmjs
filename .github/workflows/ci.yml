@@ -1,0 +1,32 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: CI Netlify
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  site-name: algorithmjs 
+  node-versions: 14.x
+  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+
+jobs:
+  publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js ${{ env.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.node-version }}
+        cache: 'npm'
+    - run: npm ci
+    - run: npm test
+    - run: npm run build --if-present
+    - run: npx netlify deploy --prod --site ${{ env.site-name }}
