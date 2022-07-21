@@ -1,4 +1,4 @@
-# JS games demos
-Por favaor utilize no mínimo Chrome 69, Firefox 62 ou Edge.
-Um conjunto de games desenvoldido por mim utilizando Phaser3 como gameengine base.
-[Example](https://htmlpreview.github.io/?https://github.com/mauruco/games/blob/master/index.html)
+# demo-react-phaser3-algorithmjs
+A set of old code to demonstrate some of the famous algorithms known.
+Feel free to use as you wish.
+[Example](https://algorithmjs.netlify.app)
